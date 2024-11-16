@@ -1,0 +1,1 @@
+# clubconnect-club-event-service
