@@ -1,5 +1,6 @@
 package com.clubconnect.clubconnect_event_club_service.service;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Service;
 import com.clubconnect.clubconnect_event_club_service.model.Event;
 import com.clubconnect.clubconnect_event_club_service.repository.ClubRepository;
 import com.clubconnect.clubconnect_event_club_service.repository.EventRepository;
+
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 @Service
 public class EventService {
@@ -46,15 +49,14 @@ public class EventService {
      * @return an Optional containing the Event object, if found
      */
     public Optional<Event> getEventById(Integer eventId) {
-        var eventMap = eventRepository.findEventById(eventId);
-        if (eventMap != null && !eventMap.isEmpty()) {
-            System.out.println("Event found: " + eventId);
-            return Optional.of(Event.fromDynamoDbMap(eventMap));
-        } else {
-            System.out.println("Event not found: " + eventId);
+        Map<String, AttributeValue> eventMap = eventRepository.findEventById(eventId);
+        System.out.println(eventId);
+        if (eventMap == null || eventMap.isEmpty()) {
             return Optional.empty();
         }
+        return Optional.of(Event.fromDynamoDbMap(eventMap));
     }
+
     
 
     /**

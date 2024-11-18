@@ -19,6 +19,7 @@ import com.clubconnect.clubconnect_event_club_service.model.Club;
 import com.clubconnect.clubconnect_event_club_service.model.Event;
 import com.clubconnect.clubconnect_event_club_service.service.ClubService;
 import com.clubconnect.clubconnect_event_club_service.service.EventService;
+import com.clubconnect.clubconnect_event_club_service.service.NotificationPublisher;
 
 @RestController
 @RequestMapping("/api/events")
@@ -26,11 +27,13 @@ public class EventController {
 
     private final EventService eventService;
     private final ClubService clubService;
+    private final NotificationPublisher notificationPublisher;
 
     @Autowired
-    public EventController(EventService eventService, ClubService clubService) {
+    public EventController(EventService eventService, ClubService clubService, NotificationPublisher notificationPublisher) {
         this.eventService = eventService;
         this.clubService = clubService;
+        this.notificationPublisher = notificationPublisher;
     }
 
     /**
@@ -68,12 +71,26 @@ public class EventController {
             club.setEventIds(eventIds);
             clubService.saveClub(club);
 
+            // Convert tags Set<String> to String[]
+            String[] tagsArray = event.getTags().toArray(new String[0]);
+
+            // Publish notification
+            notificationPublisher.publishEventNotification(
+                String.valueOf(event.getEventId()),  // Ensure eventId is a String
+                String.valueOf(event.getClubId()),  // Ensure clubId is a String
+                tagsArray                           // Use String[] for tags
+            );
+
             return ResponseEntity.status(HttpStatus.CREATED).body("Event created successfully and Club updated.");
         } catch (Exception e) {
+            // Log the error for debugging
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error creating event: " + e.getMessage());
         }
     }
+
+
 
 
 
