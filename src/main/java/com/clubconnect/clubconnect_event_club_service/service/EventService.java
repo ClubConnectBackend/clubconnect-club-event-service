@@ -38,7 +38,8 @@ public class EventService {
             event.getDescription(),
             event.getClubId(),
             event.getTags(),
-            event.getAttendeeIds()
+            event.getAttendeeIds(),
+            event.getImageUrl() != null ? event.getImageUrl() : "" // Default to empty string
         );
     }
 
@@ -50,14 +51,11 @@ public class EventService {
      */
     public Optional<Event> getEventById(Integer eventId) {
         Map<String, AttributeValue> eventMap = eventRepository.findEventById(eventId);
-        System.out.println(eventId);
         if (eventMap == null || eventMap.isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(Event.fromDynamoDbMap(eventMap));
     }
-
-    
 
     /**
      * Retrieve all events that contain a specific tag
@@ -86,7 +84,12 @@ public class EventService {
                     ? eventMap.get("attendeeIds").ns().stream().map(Integer::valueOf).collect(Collectors.toSet())
                     : Set.of();
             existingAttendees.add(attendeeId);
-            eventRepository.updateAttendeeIds(eventId, existingAttendees);
+
+            // Preserve other fields while updating attendees
+            Event event = Event.fromDynamoDbMap(eventMap);
+            event.setAttendeeIds(existingAttendees);
+            saveEvent(event);
+
             return true;
         }
         return false;
@@ -106,7 +109,11 @@ public class EventService {
                     ? eventMap.get("attendeeIds").ns().stream().map(Integer::valueOf).collect(Collectors.toSet())
                     : Set.of();
             if (existingAttendees.remove(attendeeId)) {
-                eventRepository.updateAttendeeIds(eventId, existingAttendees);
+                // Preserve other fields while updating attendees
+                Event event = Event.fromDynamoDbMap(eventMap);
+                event.setAttendeeIds(existingAttendees);
+                saveEvent(event);
+
                 return true;
             }
         }

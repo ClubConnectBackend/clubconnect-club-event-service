@@ -29,12 +29,13 @@ public class EventRepository {
     /**
      * Save an event to DynamoDB
      */
-    public void saveEvent(Integer eventId, String name, String description, Integer clubId, Set<String> tags, Set<Integer> attendeeIds) {
+    public void saveEvent(Integer eventId, String name, String description, Integer clubId, Set<String> tags, Set<Integer> attendeeIds, String imageUrl) {
         Map<String, AttributeValue> item = new HashMap<>();
         item.put("eventId", AttributeValue.builder().n(String.valueOf(eventId)).build());
         item.put("name", AttributeValue.builder().s(name).build());
         item.put("description", AttributeValue.builder().s(description).build());
         item.put("clubId", AttributeValue.builder().n(String.valueOf(clubId)).build());
+        item.put("imageUrl", AttributeValue.builder().s(imageUrl != null ? imageUrl : "").build());
 
         if (tags != null && !tags.isEmpty()) {
             item.put("tags", AttributeValue.builder().ss(tags).build());
@@ -62,20 +63,19 @@ public class EventRepository {
                 .tableName(tableName)
                 .key(Map.of("eventId", AttributeValue.builder().n(String.valueOf(eventId)).build()))
                 .build();
-    
+
         GetItemResponse response = dynamoDbClient.getItem(request);
-    
+
         // Check if the item exists in the response
         return response.hasItem() ? response.item() : Map.of();
     }
-    
 
     /**
      * Update attendee IDs for an event
      */
     public void updateAttendeeIds(Integer eventId, Set<Integer> attendeeIds) {
         Map<String, AttributeValue> eventMap = findEventById(eventId);
-        if (eventMap != null) {
+        if (eventMap != null && !eventMap.isEmpty()) {
             saveEvent(
                 eventId,
                 eventMap.get("name").s(),
@@ -84,7 +84,8 @@ public class EventRepository {
                 eventMap.containsKey("tags") && eventMap.get("tags").hasSs()
                     ? new java.util.HashSet<>(eventMap.get("tags").ss()) // Convert List<String> to Set<String>
                     : Set.of(),
-                attendeeIds
+                attendeeIds,
+                eventMap.containsKey("imageUrl") ? eventMap.get("imageUrl").s() : ""
             );
         }
     }
@@ -120,7 +121,13 @@ public class EventRepository {
         return scanResponse.items().stream()
                 .collect(Collectors.toMap(
                     item -> Integer.valueOf(item.get("eventId").n()),
-                    item -> item
+                    item -> {
+                        // Ensure imageUrl defaults to an empty string if missing
+                        if (!item.containsKey("imageUrl")) {
+                            item.put("imageUrl", AttributeValue.builder().s("").build());
+                        }
+                        return item;
+                    }
                 ));
     }
 }

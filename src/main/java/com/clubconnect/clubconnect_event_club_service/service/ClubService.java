@@ -35,7 +35,8 @@ public class ClubService {
             club.getClubId(),
             club.getName(),
             club.getDescription(),
-            club.getEventIds()
+            club.getEventIds(),
+            club.getImageUrl() != null ? club.getImageUrl() : "" // Default to empty string
         );
     }
 
@@ -57,8 +58,6 @@ public class ClubService {
         return Optional.of(club);
     }
 
-    
-
     /**
      * Add an event to a club's list of events
      *
@@ -72,7 +71,16 @@ public class ClubService {
                     .getOrDefault("eventIds", AttributeValue.builder().ns().build())
                     .ns().stream().map(Integer::valueOf).collect(Collectors.toSet());
             existingEventIds.add(eventId);
-            clubRepository.updateEventIds(clubId, existingEventIds);
+
+            // Preserve existing fields and add the updated event IDs
+            Map<String, AttributeValue> clubData = clubRepository.findClubById(clubId);
+            saveClub(new Club(
+                clubId,
+                clubData.get("name").s(),
+                clubData.get("description").s(),
+                existingEventIds,
+                clubData.containsKey("imageUrl") ? clubData.get("imageUrl").s() : ""
+            ));
             return true;
         } catch (Exception e) {
             return false;
@@ -93,7 +101,16 @@ public class ClubService {
                     .ns().stream().map(Integer::valueOf).collect(Collectors.toSet());
             if (existingEventIds.contains(eventId)) {
                 existingEventIds.remove(eventId);
-                clubRepository.updateEventIds(clubId, existingEventIds);
+
+                // Preserve existing fields and update the event IDs
+                Map<String, AttributeValue> clubData = clubRepository.findClubById(clubId);
+                saveClub(new Club(
+                    clubId,
+                    clubData.get("name").s(),
+                    clubData.get("description").s(),
+                    existingEventIds,
+                    clubData.containsKey("imageUrl") ? clubData.get("imageUrl").s() : ""
+                ));
                 return true;
             }
             return false;
@@ -127,13 +144,16 @@ public class ClubService {
     public void deleteClub(Integer clubId) {
         clubRepository.deleteClub(clubId);
     }
-    
 
+    /**
+     * Retrieve all clubs
+     *
+     * @return a list of Club objects
+     */
     public List<Club> getAllClubs() {
         List<Map<String, AttributeValue>> clubItems = clubRepository.findAllClubs();
         return clubItems.stream()
                 .map(Club::fromDynamoDbMap)
                 .collect(Collectors.toList());
     }
-
 }

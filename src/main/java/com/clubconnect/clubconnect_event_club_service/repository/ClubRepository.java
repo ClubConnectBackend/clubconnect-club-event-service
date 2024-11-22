@@ -30,11 +30,12 @@ public class ClubRepository {
     /**
      * Save or update a club in DynamoDB
      */
-    public void saveClub(Integer clubId, String name, String description, Set<Integer> eventIds) {
+    public void saveClub(Integer clubId, String name, String description, Set<Integer> eventIds, String imageUrl) {
         Map<String, AttributeValue> item = new HashMap<>();
         item.put("clubId", AttributeValue.builder().n(String.valueOf(clubId)).build());
         item.put("name", AttributeValue.builder().s(name).build());
         item.put("description", AttributeValue.builder().s(description).build());
+        item.put("imageUrl", AttributeValue.builder().s(imageUrl != null ? imageUrl : "").build());
 
         if (eventIds != null && !eventIds.isEmpty()) {
             item.put("eventIds", AttributeValue.builder().ns(
@@ -58,17 +59,16 @@ public class ClubRepository {
                 .tableName(tableName)
                 .key(Map.of("clubId", AttributeValue.builder().n(String.valueOf(clubId)).build()))
                 .build();
-    
+
         GetItemResponse response = dynamoDbClient.getItem(request);
-    
+
         if (!response.hasItem()) {
             System.out.println("No club found for ID: " + clubId);
             return Map.of(); // Return an empty map instead of null
         }
-    
+
         return response.item();
     }
-    
 
     /**
      * Update event IDs for a club
@@ -84,7 +84,8 @@ public class ClubRepository {
                     clubId,
                     club.get("name").s(),
                     club.get("description").s(),
-                    eventIds
+                    eventIds,
+                    club.containsKey("imageUrl") ? club.get("imageUrl").s() : ""
                 );
             }
         }
@@ -107,7 +108,7 @@ public class ClubRepository {
     /**
      * Find all clubs
      *
-     * @return a map of all clubs indexed by club ID
+     * @return a list of all clubs as maps
      */
     public List<Map<String, AttributeValue>> findAllClubs() {
         ScanRequest scanRequest = ScanRequest.builder()
@@ -116,7 +117,5 @@ public class ClubRepository {
 
         ScanResponse scanResponse = dynamoDbClient.scan(scanRequest);
         return scanResponse.items();
-}
-
-
+    }
 }

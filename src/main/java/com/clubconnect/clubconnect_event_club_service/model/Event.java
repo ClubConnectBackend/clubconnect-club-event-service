@@ -18,18 +18,20 @@ public class Event {
     private Integer clubId; // ID of the club organizing the event
     private Set<String> tags; // Tags related to the event (e.g., AI, Coding)
     private Set<Integer> attendeeIds; // Set of user IDs attending the event
+    private String imageUrl; // URL of the event's image stored in S3
 
     // Default constructor
     public Event() {}
 
     // Parameterized constructor
-    public Event(Integer eventId, String name, String description, Integer clubId, Set<String> tags, Set<Integer> attendeeIds) {
+    public Event(Integer eventId, String name, String description, Integer clubId, Set<String> tags, Set<Integer> attendeeIds, String imageUrl) {
         this.eventId = eventId;
         this.name = name;
         this.description = description;
         this.clubId = clubId;
         this.tags = tags;
         this.attendeeIds = attendeeIds;
+        this.imageUrl = imageUrl;
     }
 
     // Getters and setters
@@ -81,6 +83,14 @@ public class Event {
         this.attendeeIds = attendeeIds;
     }
 
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     /**
      * Converts this Event object to a DynamoDB attribute map.
      *
@@ -95,7 +105,8 @@ public class Event {
             "tags", AttributeValue.builder().ss(this.tags).build(),
             "attendeeIds", AttributeValue.builder().ns(
                 this.attendeeIds.stream().map(String::valueOf).collect(Collectors.toSet())
-            ).build()
+            ).build(),
+            "imageUrl", AttributeValue.builder().s(this.imageUrl).build()
         );
     }
 
@@ -128,10 +139,12 @@ public class Event {
                 ? item.get("attendeeIds").ns().stream().map(Integer::valueOf).collect(Collectors.toSet())
                 : Set.of();
 
-        // Return a new Event object
-        return new Event(eventId, name, description, clubId, tags, attendeeIds);
-    }
+        // Extract imageUrl, default to an empty string if not present
+        String imageUrl = item.containsKey("imageUrl") ? item.get("imageUrl").s() : "";
 
+        // Return a new Event object
+        return new Event(eventId, name, description, clubId, tags, attendeeIds, imageUrl);
+    }
 
     @Override
     public String toString() {
@@ -142,6 +155,7 @@ public class Event {
                 ", clubId=" + clubId +
                 ", tags=" + tags +
                 ", attendeeIds=" + attendeeIds +
+                ", imageUrl='" + imageUrl + '\'' +
                 '}';
     }
 }

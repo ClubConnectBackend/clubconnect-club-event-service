@@ -15,16 +15,18 @@ public class Club {
     private String name;   // Club name
     private String description; // Description of the club
     private Set<Integer> eventIds; // Set of event IDs organized by the club
+    private String imageUrl; // URL of the club's image stored in S3
 
     // Default constructor
     public Club() {}
 
     // Parameterized constructor
-    public Club(Integer clubId, String name, String description, Set<Integer> eventIds) {
+    public Club(Integer clubId, String name, String description, Set<Integer> eventIds, String imageUrl) {
         this.clubId = clubId;
         this.name = name;
         this.description = description;
         this.eventIds = eventIds;
+        this.imageUrl = imageUrl;
     }
 
     // Getters and setters
@@ -60,6 +62,14 @@ public class Club {
         this.eventIds = eventIds;
     }
 
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     /**
      * Converts this Club object to a DynamoDB attribute map.
      *
@@ -72,7 +82,8 @@ public class Club {
             "description", AttributeValue.builder().s(this.description).build(),
             "eventIds", AttributeValue.builder().ns(
                 this.eventIds.stream().map(String::valueOf).collect(Collectors.toSet())
-            ).build()
+            ).build(),
+            "imageUrl", AttributeValue.builder().s(this.imageUrl).build()
         );
     }
 
@@ -93,8 +104,9 @@ public class Club {
         Set<Integer> eventIds = item.containsKey("eventIds")
                 ? item.get("eventIds").ns().stream().map(Integer::valueOf).collect(Collectors.toSet())
                 : Set.of();
-    
-        return new Club(clubId, name, description, eventIds);
+        String imageUrl = item.containsKey("imageUrl") ? item.get("imageUrl").s() : "";
+
+        return new Club(clubId, name, description, eventIds, imageUrl);
     }
 
     @Override
@@ -104,6 +116,7 @@ public class Club {
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", eventIds=" + eventIds +
+                ", imageUrl='" + imageUrl + '\'' +
                 '}';
     }
 }
