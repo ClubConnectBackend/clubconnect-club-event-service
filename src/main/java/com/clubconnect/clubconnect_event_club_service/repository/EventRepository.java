@@ -112,22 +112,31 @@ public class EventRepository {
      * @return a set of all Event objects
      */
     public Map<Integer, Map<String, AttributeValue>> findAllEvents() {
+        // Step 1: Create a ScanRequest for the DynamoDB table
         ScanRequest scanRequest = ScanRequest.builder()
                 .tableName(tableName)
                 .build();
-
+    
+        // Step 2: Execute the scan and get the response
         ScanResponse scanResponse = dynamoDbClient.scan(scanRequest);
-
+    
+        // Step 3: Log the count of items for debugging
+        System.out.println("Number of events retrieved: " + scanResponse.count());
+    
+        // Step 4: Process the items into a Map with default handling for missing "imageUrl"
         return scanResponse.items().stream()
                 .collect(Collectors.toMap(
-                    item -> Integer.valueOf(item.get("eventId").n()),
-                    item -> {
-                        // Ensure imageUrl defaults to an empty string if missing
-                        if (!item.containsKey("imageUrl")) {
-                            item.put("imageUrl", AttributeValue.builder().s("").build());
+                        item -> {
+                            // Convert "eventId" to an Integer key
+                            String eventIdStr = item.get("eventId").n();
+                            return Integer.valueOf(eventIdStr);
+                        },
+                        item -> {
+                            // Create a new map with a default value for "imageUrl"
+                            Map<String, AttributeValue> processedItem = new HashMap<>(item);
+                            processedItem.putIfAbsent("imageUrl", AttributeValue.builder().s("").build());
+                            return processedItem;
                         }
-                        return item;
-                    }
                 ));
     }
 }
